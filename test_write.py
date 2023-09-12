@@ -1,6 +1,6 @@
+
+import sys
 import hid
-
-
 
 
 
