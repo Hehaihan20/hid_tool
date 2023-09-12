@@ -1,3 +1,6 @@
+import threading
+import time
+
 import hid
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QComboBox, QVBoxLayout, QPushButton, QTextEdit, QLabel
@@ -27,8 +30,6 @@ class MyWidget(QWidget):
         self.combobox.currentIndexChanged.connect(self.print_device_info)
         temp_devices = []
         for device in self.devices:
-            if device['product_string'] not in temp_devices:
-                temp_devices.append(device['product_string'])
                 self.combobox.addItem(device['product_string'])
 
     def button_init(self):
@@ -44,9 +45,9 @@ class MyWidget(QWidget):
         self.but_send.clicked.connect(self.btn_send_click)
 
     def text_input(self):
-        self.edit = QTextEdit(self)
-        self.edit.setPlainText("请输入要发送的内容")
-        self.edit.setGeometry(220, 40, 250, 100)
+        self.edit_input = QTextEdit(self)
+        self.edit_input.setPlainText("请输入要发送的内容")
+        self.edit_input.setGeometry(220, 40, 250, 100)
 
     def text_output(self):
         self.edit_out = QTextEdit(self)
@@ -55,33 +56,51 @@ class MyWidget(QWidget):
 
     def print_device_info(self):
         index = self.combobox.currentIndex()
-        self.ProductID = hid.enumerate()[index]['product_id']
-        self.VendorID = hid.enumerate()[index]['vendor_id']
+        self.ProductID = self.devices[index]['product_id']
+        self.VendorID = self.devices[index]['vendor_id']
         print(self.ProductID)
 
     def btn_open_click(self):
         try:
-            self.h = hid.Device(vid=self.VendorID, pid=self.ProductID)
-            self.h.open()  # TREZOR VendorID/ProductID
-        except Exception as e:  # Traceback (most recent call last): :
-            error_message = str(e)
-            # 在页面展示错误
-            # 创建一个标签控件
-            open_error_label = QLabel(error_message, self)
-            # 设置标签的位置和大小
-            open_error_label.setGeometry(300, 300, 200, 30)
-            print(error_message)
+            self.h = hid.device()
+            self.h.open(self.VendorID, self.ProductID)  # TREZOR VendorID/ProductID
+            print("ProductID:", self.ProductID)
+            print("VendorID:", self.VendorID)
+            print("Manufacturer: %s" % self.h.get_manufacturer_string())
+            print("Product: %s" % self.h.get_product_string())
+            print("Serial No: %s" % self.h.get_serial_number_string())
+            self.h.set_nonblocking(1)
 
-        print("ProductID:", self.ProductID)
-        print("VendorID:", self.VendorID)
+
+           # self.h.open()  # TREZOR VendorID/ProductID
+        except Exception as e:
+            # 捕获其他可能的异常
+            error_message = str(e)
+            print("Exception:", error_message)
+            # 在页面展示错误或采取其他适当的措施
+        except IOError as ex:
+            print(ex)
+            print("You probably don't have the hard-coded device.")
+            print("Update the h.open() line in this script with the one")
+            print("from the enumeration list output above and try again.")
 
     def btn_send_click(self):
-        # 发送数据
-        data = [0x01, 0x02, 0x03]  # 要发送的数据
-        self.h.write(data)
-        # 接收数据
-        print(data)
-        data = self.h.read(64)  # 一次最多读取64字节的数
+        try:
+            if self.h is not None:
+                # 从文本框获取要发送的数据并转换为字节数组
+                input_text = self.edit_input.toPlainText()
+                data_to_send = input_text.encode('utf-8')
+                self.h.write(data_to_send)
+                print("发送成功")
+                print(data_to_send)
+            else :
+                print("请打开端口")
+        except Exception as e:
+            # 捕获其他可能的异常
+            error_message = str(e)
+            print("Exception:", error_message)
+            # 在页面展示错误或采取其他适当的措施
+
 
     def text_contain(self):
         pass
