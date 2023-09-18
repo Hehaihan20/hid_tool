@@ -16,7 +16,7 @@ class MyHid(MyWidget):
         self.latest_device = None
         self.VendorID = None
         self.ProductID = None
-
+        self.connect_button.setCheckable(False)  # 设置按钮为可选中状态
         self.combobox_connect()
         self.btn_click()
 
@@ -38,6 +38,8 @@ class MyHid(MyWidget):
             self.open_device()
 
     def print_device_info(self):
+        self.connect_button.setCheckable(True)  # 设置按钮为可选中状态
+        self.status_label.setText(" ")
         index = self.combobox.currentIndex()
         self.ProductID = self.devices[index]['product_id']
         self.VendorID = self.devices[index]['vendor_id']
@@ -52,7 +54,7 @@ class MyHid(MyWidget):
     def open_device(self):
         try:
             if self.VendorID is not None:
-                self.connect_button.setCheckable(True)  # 设置按钮为可选中状态
+
                 self.latest_device = hid.device()
                 self.latest_device.open(self.VendorID, self.ProductID)  # 打开 HID 设备
                 print("ProductID:", self.ProductID)
@@ -62,10 +64,11 @@ class MyHid(MyWidget):
                 print("Serial No: %s" % self.latest_device.get_serial_number_string())
                 self.connected = True
                 self.latest_device.set_nonblocking(1)
+                self.status_label.setText("connect successfully")
             else:
                 self.connected = False
                 self.connect_button.setCheckable(False)  # 设置按钮为可选中状态
-
+                self.status_label.setText("未选中设备")
 
         except Exception as e:
             # 捕获其他可能的异常
@@ -82,6 +85,7 @@ class MyHid(MyWidget):
     def close_device(self):
         self.latest_device.close()  # 打开 HID 设备
         self.connected = False
+        self.status_label.setText("close successfully")
         print("close successfully")
 
     def send_info(self):
